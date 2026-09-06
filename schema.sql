@@ -202,13 +202,32 @@ CREATE TABLE IF NOT EXISTS player_stats (
 -- season is not in the original 4-table sketch, but is required once more
 -- than one season is loaded (2025 now, 2026 as it plays out) so week numbers
 -- don't collide across seasons.
+--
+-- *_allowed columns are the defensive mirror (grouped by defteam instead of
+-- posteam in ingest.py). st_* columns are special teams (field goals, punts,
+-- kickoffs, extra points), scoped separately from offense/defense scrimmage
+-- plays since those play types don't belong in an offensive efficiency number.
 CREATE TABLE IF NOT EXISTS team_week_stats (
-    id                SERIAL PRIMARY KEY,
-    team_id           INT REFERENCES teams(id),
-    season            INT NOT NULL,
-    week              INT NOT NULL,
-    epa_per_play      REAL,
-    success_rate      REAL,
-    points_per_drive  REAL,
+    id                        SERIAL PRIMARY KEY,
+    team_id                   INT REFERENCES teams(id),
+    season                    INT NOT NULL,
+    week                      INT NOT NULL,
+    epa_per_play              REAL,
+    success_rate              REAL,
+    points_per_drive          REAL,
+    epa_per_play_allowed      REAL,
+    success_rate_allowed      REAL,
+    points_per_drive_allowed  REAL,
+    st_epa_per_play           REAL,
+    st_epa_per_play_allowed   REAL,
     UNIQUE (team_id, season, week)
+);
+
+-- One row per game, refreshed by predict.py each run for every game with no
+-- final score yet. Left untouched once a game is played, so stored
+-- predictions can later be compared against actual outcomes.
+CREATE TABLE IF NOT EXISTS game_predictions (
+    game_id               TEXT PRIMARY KEY REFERENCES games(id),
+    home_win_probability  REAL NOT NULL,
+    predicted_at          TIMESTAMP NOT NULL DEFAULT now()
 );

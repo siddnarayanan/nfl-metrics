@@ -36,6 +36,12 @@ DRIVE_RESULT_POINTS = {
     "Field goal": 3,
 }
 
+SCRIMMAGE_PLAY_TYPES = ["pass", "run"]
+# special_teams_play is unreliable in the source data (it's flagged 0 for
+# field_goal rows), so special teams plays are identified by play_type
+# directly instead.
+SPECIAL_TEAMS_PLAY_TYPES = ["field_goal", "punt", "kickoff", "extra_point"]
+
 
 def fetch_player_stats_raw(season: int) -> pd.DataFrame:
     # nfl_data_py's import_weekly_data() points at a dead URL (nflverse
@@ -86,15 +92,32 @@ def build_games(seasons: list[int]) -> pd.DataFrame:
     return games
 
 
+def _epa_success_by(pbp: pd.DataFrame, play_types: list[str], side: str) -> pd.DataFrame:
+    """side is 'posteam' or 'defteam'. Returns season/team_abbr/week + epa/success."""
+    plays = pbp[pbp["play_type"].isin(play_types) & pbp[side].notna() & pbp["epa"].notna()]
+    return (
+        plays.groupby(["season", side, "week"])
+        .agg(epa=("epa", "mean"), success=("success", "mean"))
+        .reset_index()
+        .rename(columns={side: "team_abbr"})
+    )
+
+
 def build_team_week_stats(seasons: list[int]) -> pd.DataFrame:
     pbp = nfl.import_pbp_data(seasons, downcast=True)
 
-    offense = (
-        pbp[pbp["posteam"].notna() & pbp["epa"].notna()]
-        .groupby(["season", "posteam", "week"])
-        .agg(epa_per_play=("epa", "mean"), success_rate=("success", "mean"))
-        .reset_index()
+    offense = _epa_success_by(pbp, SCRIMMAGE_PLAY_TYPES, "posteam").rename(
+        columns={"epa": "epa_per_play", "success": "success_rate"}
     )
+    defense = _epa_success_by(pbp, SCRIMMAGE_PLAY_TYPES, "defteam").rename(
+        columns={"epa": "epa_per_play_allowed", "success": "success_rate_allowed"}
+    )
+    st_offense = _epa_success_by(pbp, SPECIAL_TEAMS_PLAY_TYPES, "posteam")[
+        ["season", "team_abbr", "week", "epa"]
+    ].rename(columns={"epa": "st_epa_per_play"})
+    st_defense = _epa_success_by(pbp, SPECIAL_TEAMS_PLAY_TYPES, "defteam")[
+        ["season", "team_abbr", "week", "epa"]
+    ].rename(columns={"epa": "st_epa_per_play_allowed"})
 
     drives = pbp[pbp["posteam"].notna() & pbp["drive"].notna()].drop_duplicates(
         subset=["game_id", "posteam", "drive"]
@@ -102,20 +125,23 @@ def build_team_week_stats(seasons: list[int]) -> pd.DataFrame:
     drives = drives.assign(
         drive_points=drives["fixed_drive_result"].map(DRIVE_RESULT_POINTS).fillna(0)
     )
-    points_per_drive = (
-        drives.groupby(["season", "posteam", "week"])
-        .agg(points=("drive_points", "sum"), drive_count=("drive", "count"))
-        .reset_index()
-    )
-    points_per_drive["points_per_drive"] = (
-        points_per_drive["points"] / points_per_drive["drive_count"]
-    )
 
-    merged = offense.merge(
-        points_per_drive[["season", "posteam", "week", "points_per_drive"]],
-        on=["season", "posteam", "week"],
-        how="left",
-    ).rename(columns={"posteam": "team_abbr"})
+    def _points_per_drive(side: str, out_col: str) -> pd.DataFrame:
+        agg = (
+            drives.groupby(["season", side, "week"])
+            .agg(points=("drive_points", "sum"), drive_count=("drive", "count"))
+            .reset_index()
+            .rename(columns={side: "team_abbr"})
+        )
+        agg[out_col] = agg["points"] / agg["drive_count"]
+        return agg[["season", "team_abbr", "week", out_col]]
+
+    points_per_drive = _points_per_drive("posteam", "points_per_drive")
+    points_per_drive_allowed = _points_per_drive("defteam", "points_per_drive_allowed")
+
+    merged = offense
+    for other in [defense, points_per_drive, points_per_drive_allowed, st_offense, st_defense]:
+        merged = merged.merge(other, on=["season", "team_abbr", "week"], how="left")
     return merged
 
 
