@@ -1,0 +1,4 @@
+nfl_data_py==0.3.3
+pandas==1.5.3
+psycopg2-binary==2.9.12
+python-dotenv==1.2.3
