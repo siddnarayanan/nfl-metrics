@@ -20,7 +20,7 @@ leaderboardRouter.get("/leaderboard", async (req, res, next) => {
     // metric is validated against the METRIC_COLUMNS whitelist above, so it's
     // safe to interpolate directly — never do this with unvalidated input.
     const { rows } = await pool.query(
-      `SELECT t.abbreviation, t.name, AVG(tw.${metric}) AS value
+      `SELECT t.abbreviation, t.name, t.logo_url, t.color, AVG(tw.${metric}) AS value
        FROM team_week_stats tw
        JOIN teams t ON t.id = tw.team_id
        WHERE tw.season = $1

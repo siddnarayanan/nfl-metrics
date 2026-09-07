@@ -9,6 +9,7 @@ import { teamsRouter } from "./routes/teams.js";
 import { compareRouter } from "./routes/compare.js";
 import { leaderboardRouter } from "./routes/leaderboard.js";
 import { predictionsRouter } from "./routes/predictions.js";
+import { playersRouter } from "./routes/players.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const openapiDocument = YAML.parse(
@@ -28,6 +29,7 @@ app.use("/api", teamsRouter);
 app.use("/api", compareRouter);
 app.use("/api", leaderboardRouter);
 app.use("/api", predictionsRouter);
+app.use("/api", playersRouter);
 
 const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   console.error(err);

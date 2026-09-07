@@ -14,6 +14,7 @@ async function cleanupFixtures() {
   await pool.query("DELETE FROM game_predictions WHERE game_id = $1", [FIXTURE_GAME_ID]);
   await pool.query("DELETE FROM games WHERE id = $1", [FIXTURE_GAME_ID]);
   await pool.query("DELETE FROM team_week_stats WHERE season = $1", [FIXTURE_SEASON]);
+  await pool.query("DELETE FROM player_stats WHERE season = $1", [FIXTURE_SEASON]);
   await pool.query("DELETE FROM teams WHERE abbreviation = ANY($1)", [FIXTURE_ABBREVIATIONS]);
 }
 
@@ -57,6 +58,34 @@ beforeAll(async () => {
     "INSERT INTO game_predictions (game_id, home_win_probability) VALUES ($1, 0.65)",
     [FIXTURE_GAME_ID]
   );
+
+  // QB: 3 weeks, 180 attempts total (clears the 150-attempt cutoff).
+  // epa_per_attempt = 13/180, yards_per_attempt = 1170/180, td_rate = 6/180.
+  const qbWeeks: [number, number, number, number, number][] = [
+    // week, attempts, passing_epa, passing_yards, passing_tds
+    [1, 60, 10, 400, 3],
+    [2, 60, -5, 350, 1],
+    [3, 60, 8, 420, 2],
+  ];
+  for (const [week, attempts, epa, yards, tds] of qbWeeks) {
+    await pool.query(
+      `INSERT INTO player_stats (player_id, player_name, position, team_id, season, week, season_type,
+                                  attempts, passing_epa, passing_yards, passing_tds)
+       VALUES ('ZZQB1', 'Test Quarterback', 'QB', $1, $2, $3, 'REG', $4, $5, $6, $7)`,
+      [teamIds["ZZA"], FIXTURE_SEASON, week, attempts, epa, yards, tds]
+    );
+  }
+
+  // EDGE: 8 games (clears the games>=8 cutoff), 1 sack + 2 QB hits + 1 TFL
+  // per game -> sacks_per_game=1, qb_hits_per_game=2, tfl_per_game=1.
+  for (let week = 1; week <= 8; week++) {
+    await pool.query(
+      `INSERT INTO player_stats (player_id, player_name, position, team_id, season, week, season_type,
+                                  def_sacks, def_qb_hits, def_tackles_for_loss)
+       VALUES ('ZZEDGE1', 'Test Edge Rusher', 'DE', $1, $2, $3, 'REG', 1, 2, 1)`,
+      [teamIds["ZZB"], FIXTURE_SEASON, week]
+    );
+  }
 });
 
 afterAll(async () => {
@@ -162,5 +191,45 @@ describe("GET /api/predictions", () => {
     const res = await request(app).get(`/api/predictions?season=${FIXTURE_SEASON}&week=99`);
     expect(res.status).toBe(200);
     expect(res.body.games).toEqual([]);
+  });
+});
+
+describe("GET /api/players", () => {
+  it("computes season-long QB rates as SUM/SUM, not an average of weekly totals", async () => {
+    const res = await request(app).get(
+      `/api/players?position=QB&metric=epa_per_attempt&season=${FIXTURE_SEASON}`
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.metrics).toEqual(["epa_per_attempt", "yards_per_attempt", "td_rate"]);
+    const qb = res.body.players.find((p: { player_id: string }) => p.player_id === "ZZQB1");
+    expect(qb).toBeTruthy();
+    expect(qb.volume).toBe(180);
+    expect(qb.team_abbreviation).toBe("ZZA");
+    expect(qb.values.epa_per_attempt).toBeCloseTo(13 / 180);
+    expect(qb.values.yards_per_attempt).toBeCloseTo(1170 / 180);
+    expect(qb.values.td_rate).toBeCloseTo(6 / 180);
+  });
+
+  it("computes defensive per-game rates and applies the games-played cutoff", async () => {
+    const res = await request(app).get(
+      `/api/players?position=EDGE&metric=sacks_per_game&season=${FIXTURE_SEASON}`
+    );
+    expect(res.status).toBe(200);
+    const edge = res.body.players.find((p: { player_id: string }) => p.player_id === "ZZEDGE1");
+    expect(edge).toBeTruthy();
+    expect(edge.volume).toBe(8);
+    expect(edge.values.sacks_per_game).toBeCloseTo(1);
+    expect(edge.values.qb_hits_per_game).toBeCloseTo(2);
+    expect(edge.values.tfl_per_game).toBeCloseTo(1);
+  });
+
+  it("400s for an invalid position", async () => {
+    const res = await request(app).get("/api/players?position=XYZ");
+    expect(res.status).toBe(400);
+  });
+
+  it("400s for a metric not defined on the given position", async () => {
+    const res = await request(app).get("/api/players?position=QB&metric=sacks_per_game");
+    expect(res.status).toBe(400);
   });
 });

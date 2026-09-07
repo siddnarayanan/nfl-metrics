@@ -5,7 +5,10 @@ CREATE TABLE IF NOT EXISTS teams (
     name         TEXT NOT NULL,
     abbreviation TEXT NOT NULL UNIQUE,
     conference   TEXT,
-    division     TEXT
+    division     TEXT,
+    logo_url     TEXT,
+    color        TEXT,
+    color2       TEXT
 );
 
 -- id is nflverse's own game_id (e.g. '2025_01_DAL_PHI'): stable, unique,

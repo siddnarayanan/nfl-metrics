@@ -4,6 +4,9 @@ export interface Team {
   abbreviation: string;
   conference: string | null;
   division: string | null;
+  logo_url: string | null;
+  color: string | null;
+  color2: string | null;
 }
 
 export interface TeamWeekMetrics {
