@@ -22,6 +22,7 @@ paths:
             application/json:
               schema:
                 type: object
+                required: [status]
                 properties:
                   status:
                     type: string
@@ -58,6 +59,7 @@ paths:
             application/json:
               schema:
                 type: object
+                required: [team, season, weeks]
                 properties:
                   team:
                     $ref: "#/components/schemas/Team"
@@ -94,6 +96,7 @@ paths:
             application/json:
               schema:
                 type: object
+                required: [season, teamA, teamB]
                 properties:
                   season:
                     type: integer
@@ -164,6 +167,7 @@ paths:
             application/json:
               schema:
                 type: object
+                required: [season, week, games]
                 properties:
                   season:
                     type: integer
@@ -203,12 +207,14 @@ components:
   schemas:
     Error:
       type: object
+      required: [error]
       properties:
         error:
           type: string
 
     Team:
       type: object
+      required: [id, name, abbreviation, conference, division]
       properties:
         id:
           type: integer
@@ -237,6 +243,16 @@ components:
 
     TeamWeekMetrics:
       type: object
+      required:
+        - week
+        - epa_per_play
+        - success_rate
+        - points_per_drive
+        - epa_per_play_allowed
+        - success_rate_allowed
+        - points_per_drive_allowed
+        - st_epa_per_play
+        - st_epa_per_play_allowed
       properties:
         week:
           type: integer
@@ -267,6 +283,7 @@ components:
 
     TeamComparison:
       type: object
+      required: [team, weeks, averages]
       properties:
         team:
           $ref: "#/components/schemas/Team"
@@ -276,10 +293,14 @@ components:
             $ref: "#/components/schemas/TeamWeekMetrics"
         averages:
           type: object
-          description: Season-long average of each metric
+          description: Season-long average of each metric, keyed by MetricColumn
+          additionalProperties:
+            type: number
+            nullable: true
 
     LeaderboardEntry:
       type: object
+      required: [abbreviation, name, value]
       properties:
         abbreviation:
           type: string
@@ -290,6 +311,18 @@ components:
 
     GamePrediction:
       type: object
+      required:
+        - game_id
+        - season
+        - week
+        - date
+        - home_team
+        - home_team_name
+        - away_team
+        - away_team_name
+        - home_score
+        - away_score
+        - home_win_probability
       properties:
         game_id:
           type: string
