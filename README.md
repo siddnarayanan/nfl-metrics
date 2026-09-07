@@ -7,8 +7,9 @@ A data pipeline, REST API, and win-probability model built on top of
 surfacing team efficiency (EPA/play, success rate, points/drive) beyond raw
 box scores, and predicting game outcomes from that efficiency data.
 
-**Status:** data pipeline, API, and prediction model are live against a real
-season of data. Frontend dashboard is in progress — see [Roadmap](#roadmap).
+**Status:** data pipeline, API, prediction model, and the React dashboard are
+all built and working end-to-end against a real season of data. Not yet
+deployed — see [Roadmap](#roadmap).
 
 ## Why EPA and success rate instead of raw yards/points
 
@@ -31,7 +32,7 @@ flowchart LR
     NFL[nflverse play-by-play\n& schedules] -->|ingest.py| DB[(Postgres\nSupabase)]
     DB -->|predict.py\nlogistic regression| DB
     DB --> API[Express + TypeScript\nREST API]
-    API --> WEB[React dashboard\nin progress]
+    API --> WEB[React + Vite\ndashboard]
 ```
 
 - **Ingestion** (`ingest.py`): pulls a season's schedules, play-by-play, and
@@ -44,8 +45,11 @@ flowchart LR
   differentials, and stores a win probability for every game that hasn't
   been played yet.
 - **API** (`api/`): Express + TypeScript REST API serving teams, weekly
-  trend data, head-to-head comparisons, and leaderboards.
-- **Frontend**: React (Vite) dashboard — not yet built.
+  trend data, head-to-head comparisons, leaderboards, and win-probability
+  predictions.
+- **Frontend** (`frontend/`): React + Vite dashboard — leaderboard, a
+  per-team trend page, a head-to-head comparison page, and an upcoming-games
+  predictions page. See [Frontend](#frontend) below.
 
 ## Tech stack
 
@@ -55,7 +59,7 @@ flowchart LR
 | Ingestion / ML | Python, pandas, scikit-learn |
 | Database | PostgreSQL (Supabase) |
 | API | Node.js, Express, TypeScript |
-| Frontend | React (Vite), Recharts *(planned)* |
+| Frontend | React (Vite), TypeScript, Tailwind CSS, TanStack Query, Recharts |
 
 ## Reasoning for tech stack
 
@@ -63,7 +67,7 @@ flowchart LR
 **Ingestion / ML**: Python, pandas, scikit-learn are all very common for data ingestion and machine learning with thorough documentation.
 **Database**: Familiar with PostgreSQL and Supabase was free.
 **API**: I have 3 years of experience working with Node.js, Express, and TypeScript, so this felt the most comfortable for me.
-**Frontend**: I have 3 years of experience working with React components, and around 1 year of experience with recharts.
+**Frontend**: I have 3 years of experience working with React components, and around 1 year of experience with Recharts. TanStack Query replaces hand-rolled `useEffect` data fetching with caching and loading/error states out of the box; the API's OpenAPI spec is used to generate the frontend's TypeScript types (`npm run generate-types` in `frontend/`) instead of hand-copying them, so the two apps can't drift out of sync silently.
 
 ## Project structure
 
@@ -74,11 +78,19 @@ nfl-metrics/
   predict.py           # trains model, backtests, writes win probabilities
   requirements.txt
   api/
+    openapi.yaml         # API contract - source of truth for Swagger UI and frontend codegen
     src/
       index.ts          # Express app entrypoint
+      app.ts             # Express app construction (importable by tests)
       db.ts              # Postgres connection pool
-      routes/            # teams, compare, leaderboard
+      routes/            # teams, compare, leaderboard, predictions
       lib/                # shared metric whitelist, query helpers
+      __tests__/           # Vitest + supertest integration tests
+  frontend/
+    src/
+      api/               # generated OpenAPI types, typed fetch client, TanStack Query hooks
+      components/         # Layout, TeamSelect, MetricSelect, EfficiencyChart
+      pages/                # LeaderboardPage, TeamPage, ComparePage, PredictionsPage
 ```
 
 ## Data model
@@ -114,6 +126,12 @@ cd api
 npm install
 cp .env.example .env   # fill in DATABASE_URL
 npm run dev            # http://localhost:3000
+
+# 3. Frontend (in a separate terminal)
+cd frontend
+npm install
+cp .env.example .env   # VITE_API_URL, defaults to http://localhost:3000
+npm run dev            # http://localhost:5173
 ```
 
 ### Weekly updates during the season
@@ -134,10 +152,29 @@ like.
 | `GET /api/teams/:abbreviation/stats?season=` | Weekly efficiency trend for one team (offense, defense, special teams) |
 | `GET /api/compare?teamA=&teamB=&season=` | Side-by-side weekly series + season averages for two teams |
 | `GET /api/leaderboard?metric=&order=&limit=` | Teams ranked by any of the 8 efficiency metrics |
+| `GET /api/predictions?season=&week=` | One week's games with win probabilities; defaults to the earliest unplayed week |
 
 `season` defaults to the most recent season with data, so these auto-advance
 once 2026 games are loaded. Full OpenAPI spec (`api/openapi.yaml`) is served
 as interactive Swagger UI at `/api/docs` when the API is running.
+
+## Frontend
+
+Four pages, all under `frontend/`:
+
+- **Leaderboard** (`/`) — pick any of the 8 metrics, ranked bar chart, click
+  a team to open its page
+- **Team** (`/teams/:abbreviation`) — trend charts over the season, grouped
+  into offense / defense / special teams
+- **Compare** (`/compare`) — two teams side by side: an averages table plus
+  every metric charted as overlaid lines
+- **Predictions** (`/predictions`) — the next unplayed week's games with the
+  model's win probability, showing the actual score once a game is played
+
+Data fetching goes through TanStack Query hooks (`frontend/src/api/hooks.ts`)
+built on a fully-typed client (`openapi-fetch`) generated from
+`api/openapi.yaml` — run `npm run generate-types` in `frontend/` after
+changing the API's OpenAPI spec to regenerate `frontend/src/api/schema.d.ts`.
 
 ## Testing & CI
 
@@ -201,11 +238,17 @@ A few of the tradeoffs made building this:
   SQL itself (joins, the `ON CONFLICT` upserts, the metric-name whitelist
   guarding against SQL injection in `/leaderboard`) is what's actually under
   test.
+- **Frontend types generated from `api/openapi.yaml`**, not hand-copied from
+  `api/src/types.ts`. The first draft of this duplicated the backend's types
+  by hand into the frontend — the OpenAPI spec already existed as the
+  contract, so `openapi-typescript` + `openapi-fetch` generate a fully-typed
+  client from it instead, and the two apps can't silently drift out of sync.
 
 ## Roadmap
 
-- React dashboard: team trend charts, head-to-head comparison view, leaderboard, upcoming-week predictions
-- Deploy: frontend on Vercel, API on Railway, live demo link
+- Deploy: frontend on Vercel, API on Railway, live demo link + screenshots here
+- Frontend test coverage (React Testing Library) — scoped out of the initial
+  build to focus on getting the dashboard working end-to-end first
 - Caching for `/api/leaderboard` and `/api/compare` (season averages are
   recomputed on every request)
 - A richer model (recency-weighted form, or opponent-adjusted efficiency)
