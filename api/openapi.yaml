@@ -1,0 +1,257 @@
+openapi: 3.0.3
+info:
+  title: NFL Team Efficiency Dashboard API
+  version: "1.0.0"
+  description: >
+    REST API serving team efficiency metrics (EPA/play, success rate,
+    points/drive — offense, defense, and special teams), head-to-head
+    comparisons, leaderboards, and game win-probability predictions,
+    computed from nflverse play-by-play data.
+servers:
+  - url: http://localhost:3000
+    description: Local development
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /api/teams:
+    get:
+      summary: List all teams
+      responses:
+        "200":
+          description: All 32 NFL teams
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Team"
+
+  /api/teams/{abbreviation}/stats:
+    get:
+      summary: Weekly efficiency trend for one team
+      parameters:
+        - name: abbreviation
+          in: path
+          required: true
+          schema:
+            type: string
+          example: KC
+        - $ref: "#/components/parameters/Season"
+      responses:
+        "200":
+          description: Team info plus one row per week played
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team:
+                    $ref: "#/components/schemas/Team"
+                  season:
+                    type: integer
+                  weeks:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TeamWeekMetrics"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/compare:
+    get:
+      summary: Side-by-side weekly series and season averages for two teams
+      parameters:
+        - name: teamA
+          in: query
+          required: true
+          schema:
+            type: string
+          example: KC
+        - name: teamB
+          in: query
+          required: true
+          schema:
+            type: string
+          example: BUF
+        - $ref: "#/components/parameters/Season"
+      responses:
+        "200":
+          description: Both teams' weekly series and season averages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  season:
+                    type: integer
+                  teamA:
+                    $ref: "#/components/schemas/TeamComparison"
+                  teamB:
+                    $ref: "#/components/schemas/TeamComparison"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/leaderboard:
+    get:
+      summary: Teams ranked by one efficiency metric
+      parameters:
+        - name: metric
+          in: query
+          schema:
+            $ref: "#/components/schemas/MetricColumn"
+          description: Defaults to epa_per_play
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            maximum: 32
+        - $ref: "#/components/parameters/Season"
+      responses:
+        "200":
+          description: Teams ranked by the requested metric
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaderboardEntry"
+        "400":
+          description: Invalid metric name (whitelist-checked before use in SQL)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  parameters:
+    Season:
+      name: season
+      in: query
+      required: false
+      schema:
+        type: integer
+      description: Defaults to the most recent season with data
+
+  responses:
+    NotFound:
+      description: No team with that abbreviation
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    BadRequest:
+      description: Missing or invalid query parameter
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+
+    Team:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        abbreviation:
+          type: string
+        conference:
+          type: string
+          nullable: true
+        division:
+          type: string
+          nullable: true
+
+    MetricColumn:
+      type: string
+      enum:
+        - epa_per_play
+        - success_rate
+        - points_per_drive
+        - epa_per_play_allowed
+        - success_rate_allowed
+        - points_per_drive_allowed
+        - st_epa_per_play
+        - st_epa_per_play_allowed
+
+    TeamWeekMetrics:
+      type: object
+      properties:
+        week:
+          type: integer
+        epa_per_play:
+          type: number
+          nullable: true
+        success_rate:
+          type: number
+          nullable: true
+        points_per_drive:
+          type: number
+          nullable: true
+        epa_per_play_allowed:
+          type: number
+          nullable: true
+        success_rate_allowed:
+          type: number
+          nullable: true
+        points_per_drive_allowed:
+          type: number
+          nullable: true
+        st_epa_per_play:
+          type: number
+          nullable: true
+        st_epa_per_play_allowed:
+          type: number
+          nullable: true
+
+    TeamComparison:
+      type: object
+      properties:
+        team:
+          $ref: "#/components/schemas/Team"
+        weeks:
+          type: array
+          items:
+            $ref: "#/components/schemas/TeamWeekMetrics"
+        averages:
+          type: object
+          description: Season-long average of each metric
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        abbreviation:
+          type: string
+        name:
+          type: string
+        value:
+          type: number

@@ -1,5 +1,7 @@
 # NFL Team Efficiency Dashboard
 
+![CI](https://github.com/siddnarayanan/nfl-metrics/actions/workflows/ci.yml/badge.svg)
+
 A data pipeline, REST API, and win-probability model built on top of
 [nflverse](https://github.com/nflverse/nflverse-data) play-by-play data —
 surfacing team efficiency (EPA/play, success rate, points/drive) beyond raw
@@ -134,7 +136,21 @@ like.
 | `GET /api/leaderboard?metric=&order=&limit=` | Teams ranked by any of the 8 efficiency metrics |
 
 `season` defaults to the most recent season with data, so these auto-advance
-once 2026 games are loaded.
+once 2026 games are loaded. Full OpenAPI spec (`api/openapi.yaml`) is served
+as interactive Swagger UI at `/api/docs` when the API is running.
+
+## Testing & CI
+
+Integration tests (Vitest + supertest) exercise every route against a real
+Postgres instance — schema applied fresh, fixture data seeded under an
+obviously-fake season/team abbreviations so they can never collide with real
+ingested data, cleaned up after the run. `.github/workflows/ci.yml` runs
+these plus a TypeScript typecheck on every push/PR, against an ephemeral
+`postgres:16` service container (not the production Supabase database).
+
+```bash
+cd api && npm test
+```
 
 ## Prediction model
 
@@ -148,17 +164,50 @@ each time to sanity-check accuracy before predictions are stored — currently
 flip for a model using only pregame efficiency metrics (NFL outcomes are
 inherently noisy).
 
+## Design decisions
+
+A few of the tradeoffs made building this:
+
+- **Idempotent upserts everywhere.** `ingest.py` and `predict.py` are both
+  built entirely on `INSERT ... ON CONFLICT DO UPDATE`, so re-running either
+  one — weekly, or after a mistake — never requires manual cleanup or a
+  truncate-and-reload step.
+- **`play_type` over nflverse's `special_teams_play` flag** for splitting
+  offense/defense/special-teams. The flag itself is unreliable in the source
+  data (it's `0` for field goal rows), so the split is done by checking
+  `play_type IN ('field_goal', 'punt', 'kickoff', 'extra_point')` directly —
+  found by inspecting the raw data rather than trusting the column name.
+- **Home-minus-away differential features, no explicit `is_home` term.**
+  Framing every prediction as "did the home team win" means home-field
+  advantage is already captured by the logistic regression's intercept —
+  adding a separate home/away indicator would be redundant.
+- **Retrain from scratch every run** instead of incremental/online learning.
+  With a season's worth of games this trains in well under a second, so
+  "always retrain on everything known" is simpler and avoids any
+  model-staleness bugs, at effectively no cost.
+- **One row per game in `game_predictions`**, overwritten until the game is
+  played and then left alone — not a full prediction-history log. Keeps the
+  schema minimal while still enabling a later calibration check (predicted
+  probability vs. actual outcome) without extra tables.
+- **REST over GraphQL.** The API serves a small, fixed set of query shapes
+  (team stats, a two-team comparison, a leaderboard) — GraphQL's flexibility
+  would add a resolver/schema layer without a matching need for it here.
+- **Abbreviation-based URLs** (`/api/teams/KC/stats`) instead of numeric
+  team IDs — the abbreviation is already a stable, human-readable identifier
+  nflverse itself uses everywhere, so there's no reason to expose an
+  internal surrogate key in the API surface.
+- **Integration tests against a real Postgres instance**, not mocks — an
+  ephemeral service container in CI, never the production database — so the
+  SQL itself (joins, the `ON CONFLICT` upserts, the metric-name whitelist
+  guarding against SQL injection in `/leaderboard`) is what's actually under
+  test.
+
 ## Roadmap
 
 - React dashboard: team trend charts, head-to-head comparison view, leaderboard, upcoming-week predictions
 - Deploy: frontend on Vercel, API on Railway, live demo link
-- Weekly ingestion + prediction automated via a scheduled GitHub Action
+- Caching for `/api/leaderboard` and `/api/compare` (season averages are
+  recomputed on every request)
+- A richer model (recency-weighted form, or opponent-adjusted efficiency)
+  once more seasons of data are loaded
 - See open issues / commit history for in-progress work
-
-## What I'd build next
-
-Beyond the MVP, the natural next layer for a production version of this
-app: caching for the leaderboard/comparison endpoints (they recompute
-season averages on every request), an OpenAPI spec for the API, integration
-tests around the ingestion upserts, and a richer model (recency-weighted
-form, or opponent-adjusted efficiency) once more seasons of data are loaded.
