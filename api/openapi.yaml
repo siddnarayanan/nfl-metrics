@@ -144,6 +144,38 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /api/predictions:
+    get:
+      summary: Win probabilities for one week's games
+      description: >
+        Defaults to the earliest (season, week) with at least one game that
+        hasn't been played yet.
+      parameters:
+        - $ref: "#/components/parameters/Season"
+        - name: week
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Games for the resolved season/week, with predictions where available
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  season:
+                    type: integer
+                    nullable: true
+                  week:
+                    type: integer
+                    nullable: true
+                  games:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/GamePrediction"
+
 components:
   parameters:
     Season:
@@ -255,3 +287,33 @@ components:
           type: string
         value:
           type: number
+
+    GamePrediction:
+      type: object
+      properties:
+        game_id:
+          type: string
+        season:
+          type: integer
+        week:
+          type: integer
+        date:
+          type: string
+          format: date
+        home_team:
+          type: string
+        home_team_name:
+          type: string
+        away_team:
+          type: string
+        away_team_name:
+          type: string
+        home_score:
+          type: integer
+          nullable: true
+        away_score:
+          type: integer
+          nullable: true
+        home_win_probability:
+          type: number
+          nullable: true

@@ -8,8 +8,11 @@ import { pool } from "../db.js";
 // real ingested data, even if this ever ran against a non-throwaway DB.
 const FIXTURE_SEASON = 2099;
 const FIXTURE_ABBREVIATIONS = ["ZZA", "ZZB", "ZZC"];
+const FIXTURE_GAME_ID = "2099_TEST_ZZA_ZZB";
 
 async function cleanupFixtures() {
+  await pool.query("DELETE FROM game_predictions WHERE game_id = $1", [FIXTURE_GAME_ID]);
+  await pool.query("DELETE FROM games WHERE id = $1", [FIXTURE_GAME_ID]);
   await pool.query("DELETE FROM team_week_stats WHERE season = $1", [FIXTURE_SEASON]);
   await pool.query("DELETE FROM teams WHERE abbreviation = ANY($1)", [FIXTURE_ABBREVIATIONS]);
 }
@@ -44,6 +47,16 @@ beforeAll(async () => {
       [teamIds[abbr], FIXTURE_SEASON, week, epa]
     );
   }
+
+  await pool.query(
+    `INSERT INTO games (id, season, week, season_type, home_team_id, away_team_id, home_score, away_score, date)
+     VALUES ($1, $2, 1, 'REG', $3, $4, NULL, NULL, '2099-09-01')`,
+    [FIXTURE_GAME_ID, FIXTURE_SEASON, teamIds["ZZA"], teamIds["ZZB"]]
+  );
+  await pool.query(
+    "INSERT INTO game_predictions (game_id, home_win_probability) VALUES ($1, 0.65)",
+    [FIXTURE_GAME_ID]
+  );
 });
 
 afterAll(async () => {
@@ -128,5 +141,26 @@ describe("GET /api/leaderboard", () => {
   it("400s for an invalid metric (SQL-injection guard)", async () => {
     const res = await request(app).get("/api/leaderboard?metric=not_a_column; DROP TABLE teams;");
     expect(res.status).toBe(400);
+  });
+});
+
+describe("GET /api/predictions", () => {
+  it("returns the fixture game with its prediction for an explicit season/week", async () => {
+    const res = await request(app).get(`/api/predictions?season=${FIXTURE_SEASON}&week=1`);
+    expect(res.status).toBe(200);
+    expect(res.body.season).toBe(FIXTURE_SEASON);
+    expect(res.body.week).toBe(1);
+    const game = res.body.games.find((g: { game_id: string }) => g.game_id === FIXTURE_GAME_ID);
+    expect(game).toBeTruthy();
+    expect(game.home_team).toBe("ZZA");
+    expect(game.away_team).toBe("ZZB");
+    expect(Number(game.home_win_probability)).toBeCloseTo(0.65);
+    expect(game.home_score).toBeNull();
+  });
+
+  it("returns an empty games list for a season/week with no games", async () => {
+    const res = await request(app).get(`/api/predictions?season=${FIXTURE_SEASON}&week=99`);
+    expect(res.status).toBe(200);
+    expect(res.body.games).toEqual([]);
   });
 });
