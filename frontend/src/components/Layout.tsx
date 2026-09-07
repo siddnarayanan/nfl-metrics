@@ -18,6 +18,9 @@ export function Layout() {
             <NavLink to="/compare" className={navLinkClass}>
               Compare
             </NavLink>
+            <NavLink to="/players" className={navLinkClass}>
+              Players
+            </NavLink>
             <NavLink to="/predictions" className={navLinkClass}>
               Predictions
             </NavLink>

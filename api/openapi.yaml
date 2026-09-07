@@ -180,6 +180,67 @@ paths:
                     items:
                       $ref: "#/components/schemas/GamePrediction"
 
+  /api/players:
+    get:
+      summary: Qualifying starters at one position, ranked by a metric
+      description: >
+        "Starter" is approximated by a minimum-volume cutoff (no snap-count
+        data available) — see each position's metric definitions. Always
+        returns every metric defined for the position in `values`, not just
+        the one sorted on, so a future two-metric view needs no API change.
+      parameters:
+        - name: position
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/PositionGroup"
+        - name: metric
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Defaults to the position's first metric. Must be one of that position's own metrics.
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 25
+            maximum: 100
+        - $ref: "#/components/parameters/Season"
+      responses:
+        "200":
+          description: Qualifying players at the position, with every metric for that position
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [position, season, metrics, players]
+                properties:
+                  position:
+                    $ref: "#/components/schemas/PositionGroup"
+                  season:
+                    type: integer
+                  metrics:
+                    type: array
+                    items:
+                      type: string
+                  players:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PlayerMetricEntry"
+        "400":
+          description: Invalid position, or a metric not defined for that position
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
 components:
   parameters:
     Season:
@@ -214,7 +275,7 @@ components:
 
     Team:
       type: object
-      required: [id, name, abbreviation, conference, division]
+      required: [id, name, abbreviation, conference, division, logo_url, color, color2]
       properties:
         id:
           type: integer
@@ -228,6 +289,17 @@ components:
         division:
           type: string
           nullable: true
+        logo_url:
+          type: string
+          nullable: true
+        color:
+          type: string
+          nullable: true
+          description: Primary team color, hex
+        color2:
+          type: string
+          nullable: true
+          description: Secondary team color, hex
 
     MetricColumn:
       type: string
@@ -300,7 +372,7 @@ components:
 
     LeaderboardEntry:
       type: object
-      required: [abbreviation, name, value]
+      required: [abbreviation, name, value, logo_url, color]
       properties:
         abbreviation:
           type: string
@@ -308,6 +380,13 @@ components:
           type: string
         value:
           type: number
+        logo_url:
+          type: string
+          nullable: true
+        color:
+          type: string
+          nullable: true
+          description: Primary team color, hex
 
     GamePrediction:
       type: object
@@ -350,3 +429,36 @@ components:
         home_win_probability:
           type: number
           nullable: true
+
+    PositionGroup:
+      type: string
+      enum: [QB, RB, WR, TE, EDGE, LB, CB, S]
+
+    PlayerMetricEntry:
+      type: object
+      required: [player_id, name, headshot_url, volume, team_abbreviation, team_color, team_logo_url, values]
+      properties:
+        player_id:
+          type: string
+        name:
+          type: string
+        headshot_url:
+          type: string
+          nullable: true
+        volume:
+          type: number
+          description: The stat this position's starter cutoff is measured on (e.g. attempts for QB, games for EDGE)
+        team_abbreviation:
+          type: string
+        team_color:
+          type: string
+          nullable: true
+        team_logo_url:
+          type: string
+          nullable: true
+        values:
+          type: object
+          description: Every metric defined for this position, keyed by metric name
+          additionalProperties:
+            type: number
+            nullable: true

@@ -7,7 +7,7 @@ export function isMetricColumn(value: string): value is MetricColumn {
 
 export async function getTeamByAbbreviation(abbreviation: string): Promise<Team | null> {
   const { rows } = await pool.query<Team>(
-    "SELECT id, name, abbreviation, conference, division FROM teams WHERE abbreviation = $1",
+    "SELECT id, name, abbreviation, conference, division, logo_url, color, color2 FROM teams WHERE abbreviation = $1",
     [abbreviation.toUpperCase()]
   );
   return rows[0] ?? null;

@@ -54,13 +54,24 @@ def build_teams(seasons: list[int]) -> pd.DataFrame:
     sched = nfl.import_schedules(seasons)
     active = set(sched["home_team"]) | set(sched["away_team"])
     teams = desc[desc["team_abbr"].isin(active)][
-        ["team_abbr", "team_name", "team_conf", "team_division"]
+        [
+            "team_abbr",
+            "team_name",
+            "team_conf",
+            "team_division",
+            "team_logo_espn",
+            "team_color",
+            "team_color2",
+        ]
     ].rename(
         columns={
             "team_abbr": "abbreviation",
             "team_name": "name",
             "team_conf": "conference",
             "team_division": "division",
+            "team_logo_espn": "logo_url",
+            "team_color": "color",
+            "team_color2": "color2",
         }
     )
     return teams.sort_values("abbreviation").reset_index(drop=True)

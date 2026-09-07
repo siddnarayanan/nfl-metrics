@@ -9,7 +9,7 @@ export const teamsRouter = Router();
 teamsRouter.get("/teams", async (_req, res, next) => {
   try {
     const { rows } = await pool.query<Team>(
-      "SELECT id, name, abbreviation, conference, division FROM teams ORDER BY abbreviation"
+      "SELECT id, name, abbreviation, conference, division, logo_url, color, color2 FROM teams ORDER BY abbreviation"
     );
     res.json(rows);
   } catch (err) {

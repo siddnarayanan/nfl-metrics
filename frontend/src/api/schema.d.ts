@@ -274,6 +274,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/players": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Qualifying starters at one position, ranked by a metric
+         * @description "Starter" is approximated by a minimum-volume cutoff (no snap-count data available) — see each position's metric definitions. Always returns every metric defined for the position in `values`, not just the one sorted on, so a future two-metric view needs no API change.
+         */
+        get: {
+            parameters: {
+                query: {
+                    position: components["schemas"]["PositionGroup"];
+                    /** @description Defaults to the position's first metric. Must be one of that position's own metrics. */
+                    metric?: string;
+                    order?: "asc" | "desc";
+                    limit?: number;
+                    /** @description Defaults to the most recent season with data */
+                    season?: components["parameters"]["Season"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Qualifying players at the position, with every metric for that position */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            position: components["schemas"]["PositionGroup"];
+                            season: number;
+                            metrics: string[];
+                            players: components["schemas"]["PlayerMetricEntry"][];
+                        };
+                    };
+                };
+                /** @description Invalid position, or a metric not defined for that position */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -287,6 +348,11 @@ export interface components {
             abbreviation: string;
             conference: string | null;
             division: string | null;
+            logo_url: string | null;
+            /** @description Primary team color, hex */
+            color: string | null;
+            /** @description Secondary team color, hex */
+            color2: string | null;
         };
         /** @enum {string} */
         MetricColumn: "epa_per_play" | "success_rate" | "points_per_drive" | "epa_per_play_allowed" | "success_rate_allowed" | "points_per_drive_allowed" | "st_epa_per_play" | "st_epa_per_play_allowed";
@@ -313,6 +379,9 @@ export interface components {
             abbreviation: string;
             name: string;
             value: number;
+            logo_url: string | null;
+            /** @description Primary team color, hex */
+            color: string | null;
         };
         GamePrediction: {
             game_id: string;
@@ -327,6 +396,22 @@ export interface components {
             home_score: number | null;
             away_score: number | null;
             home_win_probability: number | null;
+        };
+        /** @enum {string} */
+        PositionGroup: "QB" | "RB" | "WR" | "TE" | "EDGE" | "LB" | "CB" | "S";
+        PlayerMetricEntry: {
+            player_id: string;
+            name: string;
+            headshot_url: string | null;
+            /** @description The stat this position's starter cutoff is measured on (e.g. attempts for QB, games for EDGE) */
+            volume: number;
+            team_abbreviation: string;
+            team_color: string | null;
+            team_logo_url: string | null;
+            /** @description Every metric defined for this position, keyed by metric name */
+            values: {
+                [key: string]: number | null;
+            };
         };
     };
     responses: {

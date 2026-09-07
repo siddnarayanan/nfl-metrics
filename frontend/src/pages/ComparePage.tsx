@@ -65,8 +65,16 @@ export function ComparePage() {
                 title={METRIC_LABELS[m]}
                 data={mergeWeeksByTeam(data.teamA.weeks, data.teamB.weeks, m)}
                 series={[
-                  { dataKey: "teamA", label: data.teamA.team.abbreviation, color: "#2563eb" },
-                  { dataKey: "teamB", label: data.teamB.team.abbreviation, color: "#dc2626" },
+                  {
+                    dataKey: "teamA",
+                    label: data.teamA.team.abbreviation,
+                    color: data.teamA.team.color ?? "#2563eb",
+                  },
+                  {
+                    dataKey: "teamB",
+                    label: data.teamB.team.abbreviation,
+                    color: data.teamB.team.color ?? "#dc2626",
+                  },
                 ]}
               />
             ))}
