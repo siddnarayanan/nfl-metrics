@@ -71,11 +71,15 @@ flowchart LR
 
 ## Reasoning for tech stack
 
-**Data Source**: nflverse is a very detailed library of data, with new data coming in every week during the season. Nflverse provides more advanced metrics that can more accurately determine a team or a player's success.
-**Ingestion / ML**: Python, pandas, scikit-learn are all very common for data ingestion and machine learning with thorough documentation.
-**Database**: Familiar with PostgreSQL and Supabase was free.
-**API**: I have 3 years of experience working with Node.js, Express, and TypeScript, so this felt the most comfortable for me.
-**Frontend**: I have 3 years of experience working with React components, and around 1 year of experience with Recharts. TanStack Query replaces hand-rolled `useEffect` data fetching with caching and loading/error states out of the box; the API's OpenAPI spec is used to generate the frontend's TypeScript types (`npm run generate-types` in `frontend/`) instead of hand-copying them, so the two apps can't drift out of sync silently.
+- **Data Source**: nflverse is a very detailed library of data, with new data coming in every week during the season. Nflverse provides more advanced metrics that can more accurately determine a team or a player's success.
+
+- **Ingestion / ML**: Python, pandas, scikit-learn are all very common for data ingestion and machine learning with thorough documentation.
+
+- **Database**: Familiar with PostgreSQL and Supabase was free.
+
+- **API**: I have 3 years of experience working with Node.js, Express, and TypeScript, so this felt the most comfortable for me.
+
+- **Frontend**: I have 3 years of experience working with React components, and around 1 year of experience with Recharts. TanStack Query replaces hand-rolled `useEffect` data fetching with caching and loading/error states out of the box; the API's OpenAPI spec is used to generate the frontend's TypeScript types (`npm run generate-types` in `frontend/`) instead of hand-copying them, so the two apps can't drift out of sync silently.
 
 ## Project structure
 
