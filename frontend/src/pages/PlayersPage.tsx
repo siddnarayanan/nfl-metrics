@@ -7,7 +7,9 @@ import { humanizeMetricKey, usePlayers, type PositionGroup } from "../api/hooks.
 
 const viewTabClass = (active: boolean) =>
   `px-3 py-2 rounded-md text-sm font-medium ${
-    active ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+    active
+      ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+      : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
   }`;
 
 export function PlayersPage() {
@@ -60,10 +62,10 @@ export function PlayersPage() {
 
         {view === "ranked" && data && currentMetric && (
           <>
-            <label className="flex flex-col gap-1 text-sm text-slate-600">
+            <label className="field-label">
               Metric
               <select
-                className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900"
+                className="field-select"
                 value={currentMetric}
                 onChange={(e) => setMetric(e.target.value)}
               >
@@ -74,10 +76,10 @@ export function PlayersPage() {
                 ))}
               </select>
             </label>
-            <label className="flex flex-col gap-1 text-sm text-slate-600">
+            <label className="field-label">
               Order
               <select
-                className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900"
+                className="field-select"
                 value={order}
                 onChange={(e) => setOrder(e.target.value as "asc" | "desc")}
               >
@@ -90,10 +92,10 @@ export function PlayersPage() {
 
         {view === "scatter" && data && currentX && currentY && (
           <>
-            <label className="flex flex-col gap-1 text-sm text-slate-600">
+            <label className="field-label">
               X axis
               <select
-                className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900"
+                className="field-select"
                 value={currentX}
                 onChange={(e) => setXMetric(e.target.value)}
               >
@@ -104,10 +106,10 @@ export function PlayersPage() {
                 ))}
               </select>
             </label>
-            <label className="flex flex-col gap-1 text-sm text-slate-600">
+            <label className="field-label">
               Y axis
               <select
-                className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900"
+                className="field-select"
                 value={currentY}
                 onChange={(e) => setYMetric(e.target.value)}
               >
@@ -122,8 +124,8 @@ export function PlayersPage() {
         )}
       </div>
 
-      {isLoading && <p className="text-slate-500">Loading…</p>}
-      {isError && <p className="text-red-600">Failed to load players.</p>}
+      {isLoading && <p className="text-slate-500 dark:text-slate-400">Loading…</p>}
+      {isError && <p className="text-red-600 dark:text-red-400">Failed to load players.</p>}
 
       {data && view === "ranked" && currentMetric && (
         <RankedBarChart

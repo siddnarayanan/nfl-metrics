@@ -11,10 +11,10 @@ export function TeamSelect({ value, onChange, label, excludeAbbreviation }: Prop
   const { data: teams, isLoading } = useTeams();
 
   return (
-    <label className="flex flex-col gap-1 text-sm text-slate-600">
+    <label className="field-label">
       {label}
       <select
-        className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900"
+        className="field-select"
         value={value}
         disabled={isLoading}
         onChange={(e) => onChange(e.target.value)}

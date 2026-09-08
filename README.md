@@ -7,9 +7,14 @@ A data pipeline, REST API, and win-probability model built on top of
 surfacing team efficiency (EPA/play, success rate, points/drive) beyond raw
 box scores, and predicting game outcomes from that efficiency data.
 
-**Status:** data pipeline, API, prediction model, and the React dashboard are
-all built and working end-to-end against a real season of data. Not yet
-deployed — see [Roadmap](#roadmap).
+**Live demo:** [nfl-metrics.vercel.app](https://nfl-metrics.vercel.app)
+(API: [nfl-metrics-api.vercel.app](https://nfl-metrics-api.vercel.app),
+docs at `/api/docs`)
+
+**Status:** data pipeline, API, prediction model, and the React dashboard
+(including player-level comparisons and a dark mode) are all built, tested,
+and deployed against a real season of data. See [Roadmap](#roadmap) for
+what's next.
 
 ## Why EPA and success rate instead of raw yards/points
 
@@ -48,8 +53,11 @@ flowchart LR
   trend data, head-to-head comparisons, leaderboards, and win-probability
   predictions.
 - **Frontend** (`frontend/`): React + Vite dashboard — leaderboard, a
-  per-team trend page, a head-to-head comparison page, and an upcoming-games
-  predictions page. See [Frontend](#frontend) below.
+  per-team trend page, a head-to-head comparison page, player-level
+  comparisons by position (ranked + two-metric scatter), and an
+  upcoming-games predictions page. See [Frontend](#frontend) below.
+- **Deployment**: both `api/` and `frontend/` deploy to Vercel as separate
+  projects from this repo. See [Deployment](#deployment) below.
 
 ## Tech stack
 
@@ -153,6 +161,7 @@ like.
 | `GET /api/compare?teamA=&teamB=&season=` | Side-by-side weekly series + season averages for two teams |
 | `GET /api/leaderboard?metric=&order=&limit=` | Teams ranked by any of the 8 efficiency metrics |
 | `GET /api/predictions?season=&week=` | One week's games with win probabilities; defaults to the earliest unplayed week |
+| `GET /api/players?position=&metric=&order=&limit=&season=` | Qualifying starters at a position (QB/RB/WR/TE/EDGE/LB/CB/S), ranked by any of that position's metrics — always returns every metric for the position in `values`, not just the one sorted on |
 
 `season` defaults to the most recent season with data, so these auto-advance
 once 2026 games are loaded. Full OpenAPI spec (`api/openapi.yaml`) is served
@@ -160,16 +169,26 @@ as interactive Swagger UI at `/api/docs` when the API is running.
 
 ## Frontend
 
-Four pages, all under `frontend/`:
+Five pages, all under `frontend/`:
 
-- **Leaderboard** (`/`) — pick any of the 8 metrics, ranked bar chart, click
-  a team to open its page
+- **Leaderboard** (`/`) — pick any of the 8 team metrics, ranked bar chart
+  (each bar colored by the team's real color, with its logo at the bar's
+  tip), click a bar to open that team's page
 - **Team** (`/teams/:abbreviation`) — trend charts over the season, grouped
-  into offense / defense / special teams
+  into offense / defense / special teams, in the team's own colors
 - **Compare** (`/compare`) — two teams side by side: an averages table plus
-  every metric charted as overlaid lines
+  every metric charted as overlaid lines in each team's color
+- **Players** (`/players`) — pick a position (QB/RB/WR/TE/EDGE/LB/CB/S) and
+  one of that position's metrics for a ranked bar chart (player headshots at
+  the bar tips), or switch to a two-metric scatter view (e.g. EPA/attempt vs.
+  completion rate) to look for relationships across two stats at once
 - **Predictions** (`/predictions`) — the next unplayed week's games with the
   model's win probability, showing the actual score once a game is played
+
+Dark mode (top-right toggle) persists to `localStorage` and falls back to
+the OS preference on first visit — implemented as a class-based Tailwind
+variant plus a `ThemeContext` so chart colors (rendered as raw SVG, not
+CSS) can react to it too, not just page chrome.
 
 Data fetching goes through TanStack Query hooks (`frontend/src/api/hooks.ts`)
 built on a fully-typed client (`openapi-fetch`) generated from
@@ -200,6 +219,44 @@ each time to sanity-check accuracy before predictions are stored — currently
 ~60% accuracy on the 2025 season, which is meaningfully better than a coin
 flip for a model using only pregame efficiency metrics (NFL outcomes are
 inherently noisy).
+
+## Deployment
+
+Both `api/` and `frontend/` are separate Vercel projects pointed at this
+repo (different Root Directory each), auto-deploying on push to `main`.
+
+- **API as a serverless function, not a long-running server.** `api/api/index.ts`
+  exports the Express `app` directly — Express apps are already callable as
+  `(req, res) => void`, which is exactly Vercel's Node function signature, so
+  no wrapper library is needed. `api/vercel.json` rewrites every path
+  (including `/health`, not just `/api/*`) to that one function and force-
+  includes `openapi.yaml` in the bundle (`readFileSync` with a computed path
+  isn't reliably picked up by Vercel's static file-tracing otherwise).
+- **`pg.Pool` capped at `max: 5`.** On an always-on server there's one pool
+  for the app's whole lifetime; on serverless, each concurrent function
+  instance gets its own pool, so the client library's default (10) could
+  open far more simultaneous connections against Supabase's pooler than a
+  traditional deployment ever would under the same traffic.
+- **Public by default, deliberately hardened before going live.** There's no
+  auth, so anyone with the URL can hit every page and API route — since this
+  is meant to be a public portfolio piece, that's fine, but it does mean the
+  API is exposed to bots/scrapers with no login wall in front of it. Two
+  cheap mitigations shipped with the deploy rather than as an afterthought:
+  a `Cache-Control: public, max-age=300, stale-while-revalidate=3600` header
+  on every `/api/*` GET response (data only changes when the weekly
+  ingestion job runs, so this is safe — confirmed via `x-vercel-cache: HIT`
+  that Vercel's edge actually serves repeat identical requests without
+  invoking the function at all), and a `/robots.txt` on the API opting out
+  crawlers from indexing raw JSON. Real rate limiting is a known gap — see
+  Roadmap.
+- **Vercel's "Vercel Authentication" (SSO) deployment protection was on by
+  default** for the auto-generated `*.vercel.app` production domain on both
+  projects, which would have put the entire public demo behind a login wall.
+  Disabled explicitly (`vercel project protection disable <project> --sso`)
+  since the whole point is a link anyone can open.
+- `frontend/vercel.json` rewrites all paths to `/index.html` — required for
+  React Router's client-side routes to survive a direct link or refresh
+  (e.g. `/teams/KC`) instead of 404ing.
 
 ## Design decisions
 
@@ -246,11 +303,15 @@ A few of the tradeoffs made building this:
 
 ## Roadmap
 
-- Deploy: frontend on Vercel, API on Railway, live demo link + screenshots here
-- Frontend test coverage (React Testing Library) — scoped out of the initial
-  build to focus on getting the dashboard working end-to-end first
-- Caching for `/api/leaderboard` and `/api/compare` (season averages are
-  recomputed on every request)
+- Real rate limiting on the API — `express-rate-limit`'s default in-memory
+  store doesn't work across Vercel's serverless instances (no shared state
+  between invocations), so this needs an external store (Upstash Redis),
+  deliberately not rushed into the initial deploy
+- Frontend test coverage (React Testing Library, or an E2E suite) — scoped
+  out of the initial build to focus on getting the dashboard working
+  end-to-end first
+- A two-metric scatter view for teams, mirroring the one already built for
+  players
 - A richer model (recency-weighted form, or opponent-adjusted efficiency)
   once more seasons of data are loaded
 - See open issues / commit history for in-progress work

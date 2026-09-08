@@ -15,10 +15,10 @@ export function LeaderboardPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-end gap-4">
         <MetricSelect value={metric} onChange={setMetric} />
-        <label className="flex flex-col gap-1 text-sm text-slate-600">
+        <label className="field-label">
           Order
           <select
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900"
+            className="field-select"
             value={order}
             onChange={(e) => setOrder(e.target.value as "asc" | "desc")}
           >
@@ -28,8 +28,8 @@ export function LeaderboardPage() {
         </label>
       </div>
 
-      {isLoading && <p className="text-slate-500">Loading…</p>}
-      {isError && <p className="text-red-600">Failed to load the leaderboard.</p>}
+      {isLoading && <p className="text-slate-500 dark:text-slate-400">Loading…</p>}
+      {isError && <p className="text-red-600 dark:text-red-400">Failed to load the leaderboard.</p>}
 
       {data && (
         <RankedBarChart

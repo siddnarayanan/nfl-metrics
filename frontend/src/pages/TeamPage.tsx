@@ -16,8 +16,8 @@ export function TeamPage() {
         onChange={(abbr) => navigate(`/teams/${abbr}`)}
       />
 
-      {isLoading && <p className="text-slate-500">Loading…</p>}
-      {isError && <p className="text-red-600">No data for that team.</p>}
+      {isLoading && <p className="text-slate-500 dark:text-slate-400">Loading…</p>}
+      {isError && <p className="text-red-600 dark:text-red-400">No data for that team.</p>}
 
       {data && (
         <>
@@ -26,12 +26,12 @@ export function TeamPage() {
             const secondary = data.team.color2 ?? "#dc2626";
             return (
               <>
-                <h2 className="text-lg font-semibold text-slate-900">
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                   {data.team.name} — {data.season} season
                 </h2>
 
                 <section>
-                  <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-500">
+                  <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     Offense
                   </h3>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -54,7 +54,7 @@ export function TeamPage() {
                 </section>
 
                 <section>
-                  <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-500">
+                  <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     Defense
                   </h3>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -77,7 +77,7 @@ export function TeamPage() {
                 </section>
 
                 <section>
-                  <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-500">
+                  <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     Special teams
                   </h3>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

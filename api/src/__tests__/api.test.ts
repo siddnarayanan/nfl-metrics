@@ -200,7 +200,9 @@ describe("GET /api/players", () => {
       `/api/players?position=QB&metric=epa_per_attempt&season=${FIXTURE_SEASON}`
     );
     expect(res.status).toBe(200);
-    expect(res.body.metrics).toEqual(["epa_per_attempt", "yards_per_attempt", "td_rate"]);
+    expect(res.body.metrics).toEqual(
+      expect.arrayContaining(["epa_per_attempt", "yards_per_attempt", "td_rate"])
+    );
     const qb = res.body.players.find((p: { player_id: string }) => p.player_id === "ZZQB1");
     expect(qb).toBeTruthy();
     expect(qb.volume).toBe(180);

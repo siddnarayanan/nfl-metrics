@@ -1,9 +1,28 @@
 @import "tailwindcss";
 
+/* Class-based dark mode: `dark:` variants activate when an ancestor has the
+   `dark` class (toggled by useTheme.ts), rather than only following the OS
+   color-scheme preference. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   color-scheme: light;
 }
 
+:root.dark {
+  color-scheme: dark;
+}
+
 body {
   margin: 0;
+}
+
+@layer components {
+  .field-label {
+    @apply flex flex-col gap-1 text-sm text-slate-600 dark:text-slate-400;
+  }
+  .field-select {
+    @apply rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900
+      dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100;
+  }
 }

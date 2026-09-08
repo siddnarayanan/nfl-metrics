@@ -28,15 +28,19 @@ export function ComparePage() {
         <TeamSelect label="Team B" value={teamB} onChange={updateTeamB} excludeAbbreviation={teamA} />
       </div>
 
-      {isLoading && teamA && teamB && <p className="text-slate-500">Loading…</p>}
-      {isError && <p className="text-red-600">Couldn't load a comparison for those teams.</p>}
+      {isLoading && teamA && teamB && (
+        <p className="text-slate-500 dark:text-slate-400">Loading…</p>
+      )}
+      {isError && (
+        <p className="text-red-600 dark:text-red-400">Couldn't load a comparison for those teams.</p>
+      )}
 
       {data && (
         <>
-          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 text-left text-slate-500">
+                <tr className="border-b border-slate-200 text-left text-slate-500 dark:border-slate-700 dark:text-slate-400">
                   <th className="px-4 py-2 font-medium">Metric</th>
                   <th className="px-4 py-2 font-medium">{data.teamA.team.abbreviation}</th>
                   <th className="px-4 py-2 font-medium">{data.teamB.team.abbreviation}</th>
@@ -44,12 +48,12 @@ export function ComparePage() {
               </thead>
               <tbody>
                 {METRIC_COLUMNS.map((m) => (
-                  <tr key={m} className="border-b border-slate-100 last:border-0">
-                    <td className="px-4 py-2 text-slate-600">{METRIC_LABELS[m]}</td>
-                    <td className="px-4 py-2 font-mono text-slate-900">
+                  <tr key={m} className="border-b border-slate-100 last:border-0 dark:border-slate-800">
+                    <td className="px-4 py-2 text-slate-600 dark:text-slate-400">{METRIC_LABELS[m]}</td>
+                    <td className="px-4 py-2 font-mono text-slate-900 dark:text-slate-100">
                       {data.teamA.averages[m]?.toFixed(3) ?? "—"}
                     </td>
-                    <td className="px-4 py-2 font-mono text-slate-900">
+                    <td className="px-4 py-2 font-mono text-slate-900 dark:text-slate-100">
                       {data.teamB.averages[m]?.toFixed(3) ?? "—"}
                     </td>
                   </tr>

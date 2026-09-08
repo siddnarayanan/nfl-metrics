@@ -93,6 +93,7 @@ const METRIC_KEY_WORDS: Record<string, string> = {
   td: "TD",
   qb: "QB",
   tfl: "TFL",
+  cpoe: "CPOE",
   int: "INT",
 };
 

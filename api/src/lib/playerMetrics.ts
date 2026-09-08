@@ -54,6 +54,65 @@ export const PLAYER_METRICS: Record<PositionGroup, Record<string, PlayerMetricDe
       label: "TD rate",
       allowNegative: false,
     },
+    int_rate: {
+      numerator: "passing_interceptions",
+      denominator: "attempts",
+      label: "INT rate",
+      allowNegative: false,
+    },
+    completion_rate: {
+      numerator: "completions",
+      denominator: "attempts",
+      label: "Completion rate",
+      allowNegative: false,
+    },
+    cpoe: {
+      // CPOE is already a per-attempt rate in the source data, so the
+      // season number has to be an attempt-weighted average, not a plain
+      // SUM/SUM of the rate itself (which isn't a real quantity to sum).
+      numerator: "passing_cpoe * attempts",
+      denominator: "attempts",
+      label: "CPOE",
+      allowNegative: true,
+    },
+    sack_rate: {
+      // Sacks aren't counted in `attempts`, so this is per-dropback
+      // (attempts + times sacked), the standard definition.
+      numerator: "sacks_suffered",
+      denominator: "(attempts + sacks_suffered)",
+      label: "Sack rate",
+      allowNegative: false,
+    },
+    air_yards_per_attempt: {
+      numerator: "passing_air_yards",
+      denominator: "attempts",
+      label: "Air yards / attempt",
+      allowNegative: true,
+    },
+    first_down_rate: {
+      numerator: "passing_first_downs",
+      denominator: "attempts",
+      label: "First down rate",
+      allowNegative: false,
+    },
+    rushing_epa_per_carry: {
+      numerator: "rushing_epa",
+      denominator: "carries",
+      label: "Rushing EPA / carry",
+      allowNegative: true,
+    },
+    rushing_yards_per_carry: {
+      numerator: "rushing_yards",
+      denominator: "carries",
+      label: "Rushing yards / carry",
+      allowNegative: false,
+    },
+    fantasy_points_per_game: {
+      numerator: "fantasy_points_ppr",
+      denominator: "games",
+      label: "Fantasy points / game (PPR)",
+      allowNegative: false,
+    },
   },
   RB: {
     epa_per_carry: {
