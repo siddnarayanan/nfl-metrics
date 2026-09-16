@@ -34,15 +34,21 @@ export function PredictionsPage() {
               <div className="flex items-center justify-between text-sm">
                 <Link
                   to={`/teams/${g.away_team}`}
-                  className="font-medium text-slate-900 hover:underline dark:text-slate-100"
+                  className="flex items-center gap-1.5 font-medium text-slate-900 hover:underline dark:text-slate-100"
                 >
+                  {g.away_team_logo_url && (
+                    <img src={g.away_team_logo_url} alt="" className="h-5 w-5 object-contain" />
+                  )}
                   {g.away_team_name}
                 </Link>
                 <span className="text-slate-400 dark:text-slate-500">@</span>
                 <Link
                   to={`/teams/${g.home_team}`}
-                  className="font-medium text-slate-900 hover:underline dark:text-slate-100"
+                  className="flex items-center gap-1.5 font-medium text-slate-900 hover:underline dark:text-slate-100"
                 >
+                  {g.home_team_logo_url && (
+                    <img src={g.home_team_logo_url} alt="" className="h-5 w-5 object-contain" />
+                  )}
                   {g.home_team_name}
                 </Link>
               </div>

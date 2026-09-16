@@ -420,6 +420,9 @@ components:
           type: string
           nullable: true
           description: Primary team color, hex
+        home_team_logo_url:
+          type: string
+          nullable: true
         away_team:
           type: string
         away_team_name:
@@ -428,6 +431,9 @@ components:
           type: string
           nullable: true
           description: Primary team color, hex
+        away_team_logo_url:
+          type: string
+          nullable: true
         home_score:
           type: integer
           nullable: true
