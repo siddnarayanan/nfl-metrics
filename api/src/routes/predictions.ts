@@ -28,9 +28,9 @@ predictionsRouter.get("/predictions", async (req, res, next) => {
     const { rows } = await pool.query(
       `SELECT g.id AS game_id, g.season, g.week, g.date,
               ht.abbreviation AS home_team, ht.name AS home_team_name, ht.color AS home_team_color,
-              ht.logo_url AS home_team_logo_url,
+              ht.color2 AS home_team_color2, ht.logo_url AS home_team_logo_url,
               at.abbreviation AS away_team, at.name AS away_team_name, at.color AS away_team_color,
-              at.logo_url AS away_team_logo_url,
+              at.color2 AS away_team_color2, at.logo_url AS away_team_logo_url,
               g.home_score, g.away_score,
               gp.home_win_probability
        FROM games g

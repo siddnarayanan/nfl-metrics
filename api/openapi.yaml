@@ -420,6 +420,10 @@ components:
           type: string
           nullable: true
           description: Primary team color, hex
+        home_team_color2:
+          type: string
+          nullable: true
+          description: Secondary team color, hex
         home_team_logo_url:
           type: string
           nullable: true
@@ -431,6 +435,10 @@ components:
           type: string
           nullable: true
           description: Primary team color, hex
+        away_team_color2:
+          type: string
+          nullable: true
+          description: Secondary team color, hex
         away_team_logo_url:
           type: string
           nullable: true

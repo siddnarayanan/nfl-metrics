@@ -393,11 +393,15 @@ export interface components {
             home_team_name: string;
             /** @description Primary team color, hex */
             home_team_color?: string | null;
+            /** @description Secondary team color, hex */
+            home_team_color2?: string | null;
             home_team_logo_url?: string | null;
             away_team: string;
             away_team_name: string;
             /** @description Primary team color, hex */
             away_team_color?: string | null;
+            /** @description Secondary team color, hex */
+            away_team_color2?: string | null;
             away_team_logo_url?: string | null;
             home_score: number | null;
             away_score: number | null;

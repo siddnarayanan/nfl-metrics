@@ -65,12 +65,20 @@ export function PredictionsPage() {
                     <div className="mt-3">
                       <div className="flex h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                         <div
-                          className="h-full"
-                          style={{ width: `${awayPct}%`, backgroundColor: g.away_team_color ?? "#64748b" }}
+                          className="h-full box-border"
+                          style={{
+                            width: `${awayPct}%`,
+                            backgroundColor: g.away_team_color ?? "#64748b",
+                            border: `1.5px solid ${g.away_team_color2 ?? g.away_team_color ?? "#64748b"}`,
+                          }}
                         />
                         <div
-                          className="h-full"
-                          style={{ width: `${homePct}%`, backgroundColor: g.home_team_color ?? "#2563eb" }}
+                          className="h-full box-border"
+                          style={{
+                            width: `${homePct}%`,
+                            backgroundColor: g.home_team_color ?? "#2563eb",
+                            border: `1.5px solid ${g.home_team_color2 ?? g.home_team_color ?? "#2563eb"}`,
+                          }}
                         />
                       </div>
                       <p className="mt-1 flex justify-between text-sm text-slate-600 dark:text-slate-400">
