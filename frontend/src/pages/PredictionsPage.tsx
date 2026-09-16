@@ -55,8 +55,12 @@ export function PredictionsPage() {
                 <div className="mt-3">
                   <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                     <div
-                      className="h-full bg-blue-600 dark:bg-blue-500"
-                      style={{ width: `${Math.round(homeProb * 100)}%` }}
+                      className="h-full"
+                      style={{
+                        width: `${Math.round(homeProb * 100)}%`,
+                        backgroundColor:
+                          (homeProb >= 0.5 ? g.home_team_color : g.away_team_color) ?? "#2563eb",
+                      }}
                     />
                   </div>
                   <p className="mt-1 text-center text-sm text-slate-600 dark:text-slate-400">

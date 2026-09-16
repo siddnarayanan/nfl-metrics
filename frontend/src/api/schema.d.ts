@@ -391,8 +391,12 @@ export interface components {
             date: string;
             home_team: string;
             home_team_name: string;
+            /** @description Primary team color, hex */
+            home_team_color?: string | null;
             away_team: string;
             away_team_name: string;
+            /** @description Primary team color, hex */
+            away_team_color?: string | null;
             home_score: number | null;
             away_score: number | null;
             home_win_probability: number | null;

@@ -416,10 +416,18 @@ components:
           type: string
         home_team_name:
           type: string
+        home_team_color:
+          type: string
+          nullable: true
+          description: Primary team color, hex
         away_team:
           type: string
         away_team_name:
           type: string
+        away_team_color:
+          type: string
+          nullable: true
+          description: Primary team color, hex
         home_score:
           type: integer
           nullable: true

@@ -239,17 +239,21 @@ export const PLAYER_METRICS: Record<PositionGroup, Record<string, PlayerMetricDe
 };
 
 // "Starter" qualification proxy — no snap-count data available, so this is
-// a volume cutoff calibrated against real 2025 percentiles (offense) or
-// games-played (defense, where full-season regulars cluster at 16-17 games).
+// a volume cutoff calibrated against real 2025 full-season percentiles
+// (offense) or games-played (defense, where full-season regulars cluster at
+// 16-17 games). Scaled down (full-season min / 17, rounded) early in the
+// season so real starters clear the bar before a full season of stats has
+// accumulated — raise these back toward the full-season numbers above as
+// the season progresses.
 export const MIN_VOLUME: Record<PositionGroup, { column: string | "games"; min: number }> = {
-  QB: { column: "attempts", min: 150 },
-  RB: { column: "carries", min: 80 },
-  WR: { column: "targets", min: 40 },
-  TE: { column: "targets", min: 25 },
-  EDGE: { column: "games", min: 8 },
-  LB: { column: "games", min: 8 },
-  CB: { column: "games", min: 8 },
-  S: { column: "games", min: 8 },
+  QB: { column: "attempts", min: 9 },
+  RB: { column: "carries", min: 5 },
+  WR: { column: "targets", min: 3 },
+  TE: { column: "targets", min: 2 },
+  EDGE: { column: "games", min: 1 },
+  LB: { column: "games", min: 1 },
+  CB: { column: "games", min: 1 },
+  S: { column: "games", min: 1 },
 };
 
 export function isPlayerMetric(position: PositionGroup, metric: string): boolean {
