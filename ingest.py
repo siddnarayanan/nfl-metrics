@@ -181,7 +181,10 @@ def upsert(cur, table: str, df: pd.DataFrame, conflict_cols: list[str]):
         f"INSERT INTO {table} ({', '.join(cols)}) VALUES %s "
         f"ON CONFLICT ({', '.join(conflict_cols)}) DO UPDATE SET {set_clause}"
     )
-    values = [tuple(row) for row in df.itertuples(index=False, name=None)]
+    values = [
+        tuple(None if pd.isna(v) else v for v in row)
+        for row in df.itertuples(index=False, name=None)
+    ]
     psycopg2.extras.execute_values(cur, query, values, page_size=1000)
 
 
