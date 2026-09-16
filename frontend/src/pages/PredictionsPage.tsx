@@ -58,21 +58,28 @@ export function PredictionsPage() {
                   {g.away_score} – {g.home_score}
                 </p>
               ) : homeProb !== null ? (
-                <div className="mt-3">
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                    <div
-                      className="h-full"
-                      style={{
-                        width: `${Math.round(homeProb * 100)}%`,
-                        backgroundColor:
-                          (homeProb >= 0.5 ? g.home_team_color : g.away_team_color) ?? "#2563eb",
-                      }}
-                    />
-                  </div>
-                  <p className="mt-1 text-center text-sm text-slate-600 dark:text-slate-400">
-                    {g.home_team} win probability: {(homeProb * 100).toFixed(0)}%
-                  </p>
-                </div>
+                (() => {
+                  const homePct = Math.round(homeProb * 100);
+                  const awayPct = 100 - homePct;
+                  return (
+                    <div className="mt-3">
+                      <div className="flex h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                        <div
+                          className="h-full"
+                          style={{ width: `${awayPct}%`, backgroundColor: g.away_team_color ?? "#64748b" }}
+                        />
+                        <div
+                          className="h-full"
+                          style={{ width: `${homePct}%`, backgroundColor: g.home_team_color ?? "#2563eb" }}
+                        />
+                      </div>
+                      <p className="mt-1 flex justify-between text-sm text-slate-600 dark:text-slate-400">
+                        <span>{g.away_team} {awayPct}%</span>
+                        <span>{g.home_team} {homePct}%</span>
+                      </p>
+                    </div>
+                  );
+                })()
               ) : (
                 <p className="mt-2 text-center text-sm text-slate-400 dark:text-slate-500">
                   Prediction pending
