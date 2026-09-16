@@ -57,18 +57,28 @@ def load_games(conn) -> pd.DataFrame:
     )
 
 
-def compute_pregame_form(tws: pd.DataFrame) -> pd.DataFrame:
-    """Per team-week: average of that team's metrics over all *prior* weeks
-    this season, falling back to the previous season's full-season average
-    for week-1-of-a-season rows with no current-season history yet."""
-    tws = tws.sort_values(["team_id", "season", "week"]).reset_index(drop=True)
-
-    prior = (
-        tws.groupby(["team_id", "season"], group_keys=False)[METRIC_COLUMNS]
-        .apply(lambda g: g.expanding().mean().shift(1))
-        .reset_index(drop=True)
+def compute_pregame_form(tws: pd.DataFrame, targets: pd.DataFrame) -> pd.DataFrame:
+    """For each (team_id, season, week) in `targets`: average of that team's
+    metrics over all weeks it has actually played *before* that week this
+    season (an as-of lookup, so it works for weeks with no team_week_stats
+    row yet — i.e. upcoming games — and skips byes correctly), falling back
+    to the previous season's full-season average when no such prior week
+    exists yet."""
+    tws = tws.sort_values("week").reset_index(drop=True)
+    cum = tws.groupby(["team_id", "season"], group_keys=False)[METRIC_COLUMNS].apply(
+        lambda g: g.expanding().mean()
     )
-    form = pd.concat([tws[["team_id", "season", "week"]], prior], axis=1)
+    cum = pd.concat([tws[["team_id", "season", "week"]], cum], axis=1)
+
+    targets = targets.sort_values("week").reset_index(drop=True)
+    form = pd.merge_asof(
+        targets,
+        cum,
+        on="week",
+        by=["team_id", "season"],
+        direction="backward",
+        allow_exact_matches=False,
+    )
 
     season_avg = tws.groupby(["team_id", "season"])[METRIC_COLUMNS].mean().reset_index()
     season_avg["season"] += 1  # this average becomes the "prior" for the following season
@@ -80,7 +90,16 @@ def compute_pregame_form(tws: pd.DataFrame) -> pd.DataFrame:
     return form.drop(columns=[f"{c}_fallback" for c in METRIC_COLUMNS])
 
 
-def build_features(games: pd.DataFrame, form: pd.DataFrame) -> pd.DataFrame:
+def build_features(games: pd.DataFrame, tws: pd.DataFrame) -> pd.DataFrame:
+    home_targets = games[["season", "week", "home_team_id"]].rename(
+        columns={"home_team_id": "team_id"}
+    )
+    away_targets = games[["season", "week", "away_team_id"]].rename(
+        columns={"away_team_id": "team_id"}
+    )
+    targets = pd.concat([home_targets, away_targets], ignore_index=True).drop_duplicates()
+    form = compute_pregame_form(tws, targets)
+
     home = form.rename(
         columns={"team_id": "home_team_id", **{c: f"home_{c}" for c in METRIC_COLUMNS}}
     )
@@ -156,8 +175,7 @@ def run():
     try:
         tws = load_team_week_stats(conn)
         games = load_games(conn)
-        form = compute_pregame_form(tws)
-        features = build_features(games, form)
+        features = build_features(games, tws)
 
         n_labeled = int(features["home_score"].notna().sum())
         n_unplayed = int(features["home_score"].isna().sum())
