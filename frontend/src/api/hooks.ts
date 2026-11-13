@@ -119,3 +119,12 @@ export function usePlayers(
       ),
   });
 }
+
+export type GameResult = components["schemas"]["GameResult"];
+
+export function usePredictionResults(season?: number) {
+  return useQuery({
+    queryKey: ["predictionResults", season],
+    queryFn: () => unwrap(api.GET("/api/predictions/results", { params: { query: { season } } })),
+  });
+}

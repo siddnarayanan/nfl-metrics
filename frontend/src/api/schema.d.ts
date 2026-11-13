@@ -274,6 +274,64 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/predictions/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * How past predictions did against actual outcomes
+         * @description Every played game in the season that had a stored pregame prediction. Predictions are frozen once a game has a score, so these are the model's last forecast before kickoff. The model's pick is the home team when home_win_probability >= 0.5. Ties are listed but excluded from the summary and weekly records.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Defaults to the most recent season with data */
+                    season?: components["parameters"]["Season"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Season record, weekly records, and per-game results */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            season: number;
+                            summary: {
+                                /** @description Graded (non-tie) games */
+                                games: number;
+                                correct: number;
+                                accuracy: number | null;
+                                /** @description Mean squared error of home_win_probability vs. outcome (lower is better; 0.25 = coin flip) */
+                                brier_score: number | null;
+                            };
+                            weeks: {
+                                week: number;
+                                games: number;
+                                correct: number;
+                            }[];
+                            games: components["schemas"]["GameResult"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/players": {
         parameters: {
             query?: never;
@@ -406,6 +464,17 @@ export interface components {
             home_score: number | null;
             away_score: number | null;
             home_win_probability: number | null;
+        };
+        GameResult: components["schemas"]["GamePrediction"] & {
+            /** @enum {string} */
+            predicted_winner: "home" | "away";
+            /**
+             * @description Null for a tie
+             * @enum {string|null}
+             */
+            actual_winner: "home" | "away" | null;
+            /** @description Null for a tie */
+            correct: boolean | null;
         };
         /** @enum {string} */
         PositionGroup: "QB" | "RB" | "WR" | "TE" | "EDGE" | "LB" | "CB" | "S";

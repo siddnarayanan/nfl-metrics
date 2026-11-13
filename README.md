@@ -55,7 +55,7 @@ flowchart LR
 - **Frontend** (`frontend/`): React + Vite dashboard — leaderboard, a
   per-team trend page, a head-to-head comparison page, player-level
   comparisons by position (ranked + two-metric scatter), and an
-  upcoming-games predictions page. See [Frontend](#frontend) below.
+  predictions page (upcoming games + past results vs. the model). See [Frontend](#frontend) below.
 - **Deployment**: both `api/` and `frontend/` deploy to Vercel as separate
   projects from this repo. See [Deployment](#deployment) below.
 
@@ -165,6 +165,7 @@ like.
 | `GET /api/compare?teamA=&teamB=&season=` | Side-by-side weekly series + season averages for two teams |
 | `GET /api/leaderboard?metric=&order=&limit=` | Teams ranked by any of the 8 efficiency metrics |
 | `GET /api/predictions?season=&week=` | One week's games with win probabilities; defaults to the earliest unplayed week |
+| `GET /api/predictions/results?season=` | Played games graded against their stored pregame prediction, with season and weekly records |
 | `GET /api/players?position=&metric=&order=&limit=&season=` | Qualifying starters at a position (QB/RB/WR/TE/EDGE/LB/CB/S), ranked by any of that position's metrics — always returns every metric for the position in `values`, not just the one sorted on |
 
 `season` defaults to the most recent season with data, so these auto-advance
@@ -187,7 +188,10 @@ Five pages, all under `frontend/`:
   the bar tips), or switch to a two-metric scatter view (e.g. EPA/attempt vs.
   completion rate) to look for relationships across two stats at once
 - **Predictions** (`/predictions`) — the next unplayed week's games with the
-  model's win probability, showing the actual score once a game is played
+  model's win probability, showing the actual score once a game is played.
+  A **Past results** tab grades every played game against the model's last
+  pregame prediction: season record, accuracy, Brier score, and a week-by-week
+  breakdown with each game's pick marked correct or missed
 
 Dark mode (top-right toggle) persists to `localStorage` and falls back to
 the OS preference on first visit — implemented as a class-based Tailwind

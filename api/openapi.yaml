@@ -180,6 +180,61 @@ paths:
                     items:
                       $ref: "#/components/schemas/GamePrediction"
 
+  /api/predictions/results:
+    get:
+      summary: How past predictions did against actual outcomes
+      description: >
+        Every played game in the season that had a stored pregame prediction.
+        Predictions are frozen once a game has a score, so these are the
+        model's last forecast before kickoff. The model's pick is the home
+        team when home_win_probability >= 0.5. Ties are listed but excluded
+        from the summary and weekly records.
+      parameters:
+        - $ref: "#/components/parameters/Season"
+      responses:
+        "200":
+          description: Season record, weekly records, and per-game results
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [season, summary, weeks, games]
+                properties:
+                  season:
+                    type: integer
+                  summary:
+                    type: object
+                    required: [games, correct, accuracy, brier_score]
+                    properties:
+                      games:
+                        type: integer
+                        description: Graded (non-tie) games
+                      correct:
+                        type: integer
+                      accuracy:
+                        type: number
+                        nullable: true
+                      brier_score:
+                        type: number
+                        nullable: true
+                        description: Mean squared error of home_win_probability vs. outcome (lower is better; 0.25 = coin flip)
+                  weeks:
+                    type: array
+                    items:
+                      type: object
+                      required: [week, games, correct]
+                      properties:
+                        week:
+                          type: integer
+                        games:
+                          type: integer
+                        correct:
+                          type: integer
+                  games:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/GameResult"
+
   /api/players:
     get:
       summary: Qualifying starters at one position, ranked by a metric
@@ -451,6 +506,25 @@ components:
         home_win_probability:
           type: number
           nullable: true
+
+    GameResult:
+      allOf:
+        - $ref: "#/components/schemas/GamePrediction"
+        - type: object
+          required: [predicted_winner, actual_winner, correct]
+          properties:
+            predicted_winner:
+              type: string
+              enum: [home, away]
+            actual_winner:
+              type: string
+              enum: [home, away]
+              nullable: true
+              description: Null for a tie
+            correct:
+              type: boolean
+              nullable: true
+              description: Null for a tie
 
     PositionGroup:
       type: string

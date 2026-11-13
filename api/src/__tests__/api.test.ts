@@ -9,10 +9,19 @@ import { pool } from "../db.js";
 const FIXTURE_SEASON = 2099;
 const FIXTURE_ABBREVIATIONS = ["ZZA", "ZZB", "ZZC"];
 const FIXTURE_GAME_ID = "2099_TEST_ZZA_ZZB";
+// Played games with stored predictions, for /api/predictions/results:
+// [id, week, home, away, home_score, away_score, home_win_probability]
+const FIXTURE_PLAYED_GAMES: [string, number, string, string, number, number, number][] = [
+  ["2099_TEST_W2_ZZA_ZZC", 2, "ZZA", "ZZC", 24, 10, 0.7], // picked home, home won -> correct
+  ["2099_TEST_W2_ZZB_ZZC", 2, "ZZB", "ZZC", 13, 20, 0.6], // picked home, away won -> wrong
+  ["2099_TEST_W3_ZZC_ZZA", 3, "ZZC", "ZZA", 17, 27, 0.2], // picked away, away won -> correct
+  ["2099_TEST_W3_ZZB_ZZA", 3, "ZZB", "ZZA", 21, 21, 0.5], // tie -> ungraded
+];
+const ALL_FIXTURE_GAME_IDS = [FIXTURE_GAME_ID, ...FIXTURE_PLAYED_GAMES.map((g) => g[0])];
 
 async function cleanupFixtures() {
-  await pool.query("DELETE FROM game_predictions WHERE game_id = $1", [FIXTURE_GAME_ID]);
-  await pool.query("DELETE FROM games WHERE id = $1", [FIXTURE_GAME_ID]);
+  await pool.query("DELETE FROM game_predictions WHERE game_id = ANY($1)", [ALL_FIXTURE_GAME_IDS]);
+  await pool.query("DELETE FROM games WHERE id = ANY($1)", [ALL_FIXTURE_GAME_IDS]);
   await pool.query("DELETE FROM team_week_stats WHERE season = $1", [FIXTURE_SEASON]);
   await pool.query("DELETE FROM player_stats WHERE season = $1", [FIXTURE_SEASON]);
   await pool.query("DELETE FROM teams WHERE abbreviation = ANY($1)", [FIXTURE_ABBREVIATIONS]);
@@ -58,6 +67,17 @@ beforeAll(async () => {
     "INSERT INTO game_predictions (game_id, home_win_probability) VALUES ($1, 0.65)",
     [FIXTURE_GAME_ID]
   );
+  for (const [id, week, home, away, homeScore, awayScore, prob] of FIXTURE_PLAYED_GAMES) {
+    await pool.query(
+      `INSERT INTO games (id, season, week, season_type, home_team_id, away_team_id, home_score, away_score, date)
+       VALUES ($1, $2, $3, 'REG', $4, $5, $6, $7, '2099-09-15')`,
+      [id, FIXTURE_SEASON, week, teamIds[home], teamIds[away], homeScore, awayScore]
+    );
+    await pool.query(
+      "INSERT INTO game_predictions (game_id, home_win_probability) VALUES ($1, $2)",
+      [id, prob]
+    );
+  }
 
   // QB: 3 weeks, 180 attempts total (clears the 150-attempt cutoff).
   // epa_per_attempt = 13/180, yards_per_attempt = 1170/180, td_rate = 6/180.
@@ -191,6 +211,45 @@ describe("GET /api/predictions", () => {
     const res = await request(app).get(`/api/predictions?season=${FIXTURE_SEASON}&week=99`);
     expect(res.status).toBe(200);
     expect(res.body.games).toEqual([]);
+  });
+});
+
+describe("GET /api/predictions/results", () => {
+  it("grades only played games with predictions and excludes ties from the record", async () => {
+    const res = await request(app).get(`/api/predictions/results?season=${FIXTURE_SEASON}`);
+    expect(res.status).toBe(200);
+    expect(res.body.season).toBe(FIXTURE_SEASON);
+
+    // The unplayed fixture game must not appear.
+    const ids = res.body.games.map((g: { game_id: string }) => g.game_id);
+    expect(ids).not.toContain(FIXTURE_GAME_ID);
+    expect(ids).toHaveLength(4);
+
+    expect(res.body.summary.games).toBe(3);
+    expect(res.body.summary.correct).toBe(2);
+    expect(res.body.summary.accuracy).toBeCloseTo(2 / 3);
+    // (0.7-1)^2 + (0.6-0)^2 + (0.2-0)^2 = 0.09 + 0.36 + 0.04
+    expect(res.body.summary.brier_score).toBeCloseTo(0.49 / 3);
+
+    expect(res.body.weeks).toEqual([
+      { week: 2, games: 2, correct: 1 },
+      { week: 3, games: 1, correct: 1 },
+    ]);
+
+    const byId = Object.fromEntries(
+      res.body.games.map((g: { game_id: string }) => [g.game_id, g])
+    );
+    expect(byId["2099_TEST_W2_ZZB_ZZC"]).toMatchObject({
+      predicted_winner: "home",
+      actual_winner: "away",
+      correct: false,
+    });
+    expect(byId["2099_TEST_W3_ZZC_ZZA"]).toMatchObject({
+      predicted_winner: "away",
+      actual_winner: "away",
+      correct: true,
+    });
+    expect(byId["2099_TEST_W3_ZZB_ZZA"]).toMatchObject({ actual_winner: null, correct: null });
   });
 });
 
